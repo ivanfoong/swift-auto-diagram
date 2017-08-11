@@ -162,7 +162,8 @@ def allMethods codeString
       end
     }
 
-    methods << SwiftMethod.new(matchData['name'], type, accessLevel)
+    paramTypes = allParamTypes matchData['name']
+    methods << SwiftMethod.new(matchData['name'], type, accessLevel, paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -171,6 +172,24 @@ def allMethods codeString
   }
 
   return methods
+end
+
+def allParamTypes codeString
+  paramTypes = []
+  dataTypeRegex =/\:\s*(?<dataType>\w+|\[[\w\:\s]+\]\??)/
+  dictionaryTypeRegex =/\[(?<key>\w+\??)\:\s*(?<value>\w+\??)\]\??/
+  codeString.scan(dataTypeRegex) {
+    dataTypeMatchData = Regexp.last_match
+    if dataTypeMatchData['dataType'] =~ dictionaryTypeRegex
+      dataTypeMatchData['dataType'].scan(dictionaryTypeRegex) {
+        paramTypes << Regexp.last_match['key']
+        paramTypes << Regexp.last_match['value']
+      }
+    else
+      paramTypes << dataTypeMatchData['dataType']
+    end
+  }
+  return paramTypes
 end
 
 def allInits codeString
@@ -198,7 +217,8 @@ def allInits codeString
       end
     }
 
-    methods << SwiftMethod.new(matchData['name'], type, accessLevel)
+    paramTypes = allParamTypes matchData['name'].strip
+    methods << SwiftMethod.new(matchData['name'], type, accessLevel, paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -219,8 +239,9 @@ def allProtocolMethods codeString
     matchData = Regexp.last_match
 
     type = matchData['isStatic'] == 'static' ? 'type' : 'instance'
+    paramTypes = allParamTypes matchData['name'].strip
 
-    methods << SwiftMethod.new(matchData['name'].strip, type, 'internal')
+    methods << SwiftMethod.new(matchData['name'].strip, type, 'internal', paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -307,7 +328,14 @@ def parseUsageEntities entities
     entity.properties.each { |property|
       foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==property.dataType }.first
       entity.usageEntities << foundEntity.id if foundEntity
-    } 
+    }
+
+    entity.methods.each { |method|
+      method.paramTypes.each { |paramType|
+        foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==paramType }.first
+        entity.usageEntities << foundEntity.id if foundEntity
+      }
+    }
   }
 end
 
