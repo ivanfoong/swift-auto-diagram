@@ -24,6 +24,10 @@ def entitiesFromFiles
   entities += parseExtensions extensions, entities
   Logger.log.info 'Finished parsing extensions'
 
+  Logger.log.info 'Starting parsing usage entities'
+  parseUsageEntities entities
+  Logger.log.info 'Finished parsing usage entities'
+
   return entities
 end
 
@@ -274,8 +278,8 @@ def allProperties codeString
         end
       }
     end
-
-    properties << SwiftProperty.new(matchData['name'], type, accessLevel)
+    dataType = matchData['name'].split(':').last.strip.gsub(/\?$/, '')
+    properties << SwiftProperty.new(matchData['name'], type, accessLevel, dataType)
   }
 
   return properties
@@ -296,6 +300,15 @@ def allCases codeString
   }
 
   return cases.map{|c| SwiftEnumCase.new(c)}
+end
+
+def parseUsageEntities entities
+  entities.each { |entity|
+    entity.properties.each { |property|
+      foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==property.dataType }.first
+      entity.usageEntities << foundEntity.id if foundEntity
+    } 
+  }
 end
 
 def parseInheritedEntities entities

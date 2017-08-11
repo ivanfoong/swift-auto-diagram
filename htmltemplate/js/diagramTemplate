@@ -32,6 +32,7 @@ var colorSuperClass = { color: "#848484", highlight: "#848484", hover: "#848484"
 var colorProtocol = { color: "#9a2a9e", highlight: "#9a2a9e", hover: "#9a2a9e" }
 var colorExtension = { color: "#2a8e9e", highlight: "#2a8e9e", hover: "#2a8e9e" }
 var colorContainedIn = { color: "#99AB22", highlight: "#99AB22", hover: "#99AB22" }
+var colorUsage = { color: "#99AB22", highlight: "#99AB22", hover: "#99AB22" }
 var centralNodeColor = "rgba(0,0,0,0)";
 var centralEdgeLengthMultiplier = 1;
 var network = undefined;
@@ -135,12 +136,14 @@ function createDiagram() {
     var extEdges = getEdges(entity.id, entity.extensions, length, "extends", colorExtension, {from: true});
     var proEdges = getEdges(entity.id, entity.protocols, length, "conforms to", colorProtocol, {to: true});
     var conEdges = getEdges(entity.id, entity.containedEntities, length, "contained in", colorContainedIn, {from: true});
+    var usageEdges = getEdges(entity.id, entity.usages, length, "uses", colorUsage, {to: true});
 
     hasDependencies = hasDependencies && extEdges.length > 0 && proEdges.length > 0 && conEdges.length > 0;
 
     edges = edges.concat(extEdges);
     edges = edges.concat(proEdges);
     edges = edges.concat(conEdges);
+    edges = edges.concat(usageEdges);
 
     if (!hasDependencies && useCentralNode)
     {

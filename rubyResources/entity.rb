@@ -4,6 +4,7 @@ class Entity
 
   attr_accessor :id
   attr_accessor :inheritedEntities
+  attr_accessor :usageEntities
 
   attr_accessor :typeString
 
@@ -20,6 +21,7 @@ class Entity
     @@id += 1
 
     @inheritedEntities = inheritedEntities
+    @usageEntities = []
 
     @typeString = typeString
 
@@ -53,6 +55,10 @@ class Entity
 
     if !@cases.empty?
       hash['cases'] = @cases
+    end
+
+    if !@usageEntities.empty?
+      hash['usages'] = @usageEntities
     end
 
     return hash
