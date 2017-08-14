@@ -15,6 +15,7 @@ class Entity
   attr_accessor :methods
   attr_accessor :properties
   attr_accessor :cases
+  attr_accessor :tokens
 
   def initialize(inheritedEntities, typeString, contentsCodeString)
     @id = @@id
@@ -31,6 +32,7 @@ class Entity
     @methods = []
     @properties = []
     @cases = []
+    @tokens = []
   end
 
   def to_hash

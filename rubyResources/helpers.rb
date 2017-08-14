@@ -68,6 +68,16 @@ def createEntities codeString
   }
 end
 
+def allTokens codeString
+  tokens = []
+  tokenRegex =/(?<token>\w+)/
+  codeString.scan(tokenRegex) {
+    matchData = Regexp.last_match
+    tokens << matchData['token']
+  }
+  return tokens
+end
+
 def allEntities codeString
   entities = []
   entityRegex = /(?<entityType>(class|struct|protocol|enum))\s+(?!(var|open|public|internal|fileprivate|private|func))(?<name>\w+)(?<inheritancePart>([^{]*)?)(?<contentsCodeString>{(?>[^{}]|\g<contentsCodeString>)*})/
@@ -102,6 +112,8 @@ def allEntities codeString
     contentsCodeString, startIndex, contentsStartIndex, contentsEndIndex)
 
     newEntity.containedEntities += subEntities
+
+    newEntity.tokens += allTokens contentsCodeString
 
     entities << newEntity
   }
@@ -336,6 +348,17 @@ def parseUsageEntities entities
         entity.usageEntities << foundEntity.id if foundEntity
       }
     }
+
+    entity.tokens.each { |token|
+      foundEntity = entities.select { |e| e.id != entity.id }.select { |e| e.respond_to? :name }.select { |e| e.name==token }.first
+      entity.usageEntities << foundEntity.id if foundEntity
+    }
+
+    entity.usageEntities = entity.usageEntities.uniq
+    entity.usageEntities = entity.usageEntities - entity.inheritedEntities
+    entity.usageEntities = entity.usageEntities - entity.protocols.map{|p| p.id}
+    entity.usageEntities = entity.usageEntities - entity.containedEntities.map{|e| e.id} if entity.respond_to? :containedEntities
+    entity.usageEntities = entity.usageEntities - [entity.superClass.id] if entity.respond_to? :superClass and entity.superClass.nil? == false
   }
 end
 
