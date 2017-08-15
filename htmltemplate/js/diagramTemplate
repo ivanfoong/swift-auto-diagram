@@ -207,3 +207,8 @@ function setSize() {
   $("#classDiagram").width(width - 5);
   $("#classDiagram").height(height - 5);
 }
+
+$(window).on('resize', function(event) {
+  setSize();
+  network.fit();
+});
