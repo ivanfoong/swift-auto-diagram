@@ -3,6 +3,7 @@ $entities
 ;
 
 var renderedEntities = [];
+var useSimpleEntity = true;
 
 var useCentralNode = true;
 
@@ -17,7 +18,7 @@ var templates = {
     this.case = document.getElementById("case").innerHTML;
     this.property = document.getElementById("property").innerHTML;
     this.method = document.getElementById("method").innerHTML;
-    this.entity = document.getElementById("entity").innerHTML;
+    this.entity = document.getElementById(useSimpleEntity ? "entity-simple" : "entity").innerHTML;
     this.data = document.getElementById("data").innerHTML;
 
     Mustache.parse(this.case)
@@ -159,10 +160,10 @@ function createDiagram() {
       edges: edges
   };
   var options = {
-      "edges": { "smooth": false },
+      "edges": { "smooth": true },
       "physics": {
         "barnesHut": {
-          "gravitationalConstant": -7000,
+          "gravitationalConstant": -30000,
           "springLength": maxEdgeLength,
           "avoidOverlap": 1
         }
