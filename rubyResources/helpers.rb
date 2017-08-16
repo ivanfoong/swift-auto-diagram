@@ -1,3 +1,6 @@
+$entitiesToFocus = []
+$entitiesToFilter = ['String', 'Date']
+
 def entitiesFromFiles
   entities = []
   extensions = []
@@ -19,12 +22,30 @@ def entitiesFromFiles
   Logger.log.info 'Starting parsing inherited entities'
   parseInheritedEntities entities
   Logger.log.info 'Finished parsing inherited entities'
-
+  
   Logger.log.info 'Starting parsing extensions'
   entities += parseExtensions extensions, entities
   Logger.log.info 'Finished parsing extensions'
 
-  return entities
+  Logger.log.info 'Starting parsing usage entities'
+  parseUsageEntities entities
+  Logger.log.info 'Finished parsing usage entities'
+
+  focusedEntities = entities
+  unless $entitiesToFocus.empty?
+    focusedEntities = entities.select { |entity| entity.respond_to? :name }.select { |entity| $entitiesToFocus.include? entity.name }
+    focusedEntities += entities.select { |entity| entity.respond_to? :extendedEntityName }.select { |entity| $entitiesToFocus.include? entity.extendedEntityName }
+    focusedEntities += entities.select { |entity| (focusedEntities.select { |entity| entity.respond_to? :name }.map { |entity| entity.name } & entity.inheritedEntities).count > 0 }
+    focusedEntities += entities.select { |entity| entity.respond_to? :extendedEntityName }.select { |entity| focusedEntities.select { |entity| entity.respond_to? :name }.map { |entity| entity.name }.include?(entity.extendedEntityName) }
+    focusedEntities += entities.select { |entity| (focusedEntities.select { |entity| entity.respond_to? :id }.map { |entity| entity.id } & entity.usageEntities).count > 0 }
+  end
+  focusedEntities = focusedEntities.reject { |entity|
+    $entitiesToFilter.include?(entity.name) if entity.respond_to? :name
+  }.reject { |entity|
+    $entitiesToFilter.include?(entity.extendedEntityName) if entity.respond_to? :extendedEntityName
+  }
+  focusedEntities = focusedEntities.uniq
+  return focusedEntities
 end
 
 def removeCommentsAndStringsInCodeString codeString
@@ -64,6 +85,16 @@ def createEntities codeString
   }
 end
 
+def allTokens codeString
+  tokens = []
+  tokenRegex =/(?<token>\w+)/
+  codeString.scan(tokenRegex) {
+    matchData = Regexp.last_match
+    tokens << matchData['token']
+  }
+  return tokens
+end
+
 def allEntities codeString
   entities = []
   entityRegex = /(?<entityType>(class|struct|protocol|enum))\s+(?!(var|open|public|internal|fileprivate|private|func))(?<name>\w+)(?<inheritancePart>([^{]*)?)(?<contentsCodeString>{(?>[^{}]|\g<contentsCodeString>)*})/
@@ -98,6 +129,8 @@ def allEntities codeString
     contentsCodeString, startIndex, contentsStartIndex, contentsEndIndex)
 
     newEntity.containedEntities += subEntities
+
+    newEntity.tokens += allTokens contentsCodeString
 
     entities << newEntity
   }
@@ -158,7 +191,8 @@ def allMethods codeString
       end
     }
 
-    methods << SwiftMethod.new(matchData['name'], type, accessLevel)
+    paramTypes = allParamTypes matchData['name']
+    methods << SwiftMethod.new(matchData['name'], type, accessLevel, paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -167,6 +201,24 @@ def allMethods codeString
   }
 
   return methods
+end
+
+def allParamTypes codeString
+  paramTypes = []
+  dataTypeRegex =/\:\s*(?<dataType>\w+|\[[\w\:\s]+\]\??)/
+  dictionaryTypeRegex =/\[(?<key>\w+\??)\:\s*(?<value>\w+\??)\]\??/
+  codeString.scan(dataTypeRegex) {
+    dataTypeMatchData = Regexp.last_match
+    if dataTypeMatchData['dataType'] =~ dictionaryTypeRegex
+      dataTypeMatchData['dataType'].scan(dictionaryTypeRegex) {
+        paramTypes << Regexp.last_match['key']
+        paramTypes << Regexp.last_match['value']
+      }
+    else
+      paramTypes << dataTypeMatchData['dataType']
+    end
+  }
+  return paramTypes
 end
 
 def allInits codeString
@@ -194,7 +246,8 @@ def allInits codeString
       end
     }
 
-    methods << SwiftMethod.new(matchData['name'], type, accessLevel)
+    paramTypes = allParamTypes matchData['name'].strip
+    methods << SwiftMethod.new(matchData['name'], type, accessLevel, paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -215,8 +268,9 @@ def allProtocolMethods codeString
     matchData = Regexp.last_match
 
     type = matchData['isStatic'] == 'static' ? 'type' : 'instance'
+    paramTypes = allParamTypes matchData['name'].strip
 
-    methods << SwiftMethod.new(matchData['name'].strip, type, 'internal')
+    methods << SwiftMethod.new(matchData['name'].strip, type, 'internal', paramTypes)
     methodsStrings << matchData[0]
   }
 
@@ -274,8 +328,8 @@ def allProperties codeString
         end
       }
     end
-
-    properties << SwiftProperty.new(matchData['name'], type, accessLevel)
+    dataType = matchData['name'].split(':').last.strip.gsub(/\?$/, '')
+    properties << SwiftProperty.new(matchData['name'], type, accessLevel, dataType)
   }
 
   return properties
@@ -296,6 +350,33 @@ def allCases codeString
   }
 
   return cases.map{|c| SwiftEnumCase.new(c)}
+end
+
+def parseUsageEntities entities
+  entities.each { |entity|
+    entity.properties.each { |property|
+      foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==property.dataType }.first
+      entity.usageEntities << foundEntity.id if foundEntity
+    }
+
+    entity.methods.each { |method|
+      method.paramTypes.each { |paramType|
+        foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==paramType }.first
+        entity.usageEntities << foundEntity.id if foundEntity
+      }
+    }
+
+    entity.tokens.each { |token|
+      foundEntity = entities.select { |e| e.id != entity.id }.select { |e| e.respond_to? :name }.select { |e| e.name==token }.first
+      entity.usageEntities << foundEntity.id if foundEntity
+    }
+
+    entity.usageEntities = entity.usageEntities.uniq
+    entity.usageEntities = entity.usageEntities - entity.inheritedEntities
+    entity.usageEntities = entity.usageEntities - entity.protocols.map{|p| p.id}
+    entity.usageEntities = entity.usageEntities - entity.containedEntities.map{|e| e.id} if entity.respond_to? :containedEntities
+    entity.usageEntities = entity.usageEntities - [entity.superClass.id] if entity.respond_to? :superClass and entity.superClass.nil? == false
+  }
 end
 
 def parseInheritedEntities entities

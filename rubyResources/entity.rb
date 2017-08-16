@@ -4,6 +4,7 @@ class Entity
 
   attr_accessor :id
   attr_accessor :inheritedEntities
+  attr_accessor :usageEntities
 
   attr_accessor :typeString
 
@@ -14,12 +15,14 @@ class Entity
   attr_accessor :methods
   attr_accessor :properties
   attr_accessor :cases
+  attr_accessor :tokens
 
   def initialize(inheritedEntities, typeString, contentsCodeString)
     @id = @@id
     @@id += 1
 
     @inheritedEntities = inheritedEntities
+    @usageEntities = []
 
     @typeString = typeString
 
@@ -29,6 +32,7 @@ class Entity
     @methods = []
     @properties = []
     @cases = []
+    @tokens = []
   end
 
   def to_hash
@@ -53,6 +57,10 @@ class Entity
 
     if !@cases.empty?
       hash['cases'] = @cases
+    end
+
+    if !@usageEntities.empty?
+      hash['usages'] = @usageEntities
     end
 
     return hash
