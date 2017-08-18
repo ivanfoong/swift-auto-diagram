@@ -1,6 +1,3 @@
-$entitiesToFocus = []
-$entitiesToFilter = ['String', 'Date']
-
 def entitiesFromFiles
   entities = []
   extensions = []
@@ -31,21 +28,8 @@ def entitiesFromFiles
   parseUsageEntities entities
   Logger.log.info 'Finished parsing usage entities'
 
-  focusedEntities = entities
-  unless $entitiesToFocus.empty?
-    focusedEntities = entities.select { |entity| entity.respond_to? :name }.select { |entity| $entitiesToFocus.include? entity.name }
-    focusedEntities += entities.select { |entity| entity.respond_to? :extendedEntityName }.select { |entity| $entitiesToFocus.include? entity.extendedEntityName }
-    focusedEntities += entities.select { |entity| (focusedEntities.select { |entity| entity.respond_to? :name }.map { |entity| entity.name } & entity.inheritedEntities).count > 0 }
-    focusedEntities += entities.select { |entity| entity.respond_to? :extendedEntityName }.select { |entity| focusedEntities.select { |entity| entity.respond_to? :name }.map { |entity| entity.name }.include?(entity.extendedEntityName) }
-    focusedEntities += entities.select { |entity| (focusedEntities.select { |entity| entity.respond_to? :id }.map { |entity| entity.id } & entity.usageEntities).count > 0 }
-  end
-  focusedEntities = focusedEntities.reject { |entity|
-    $entitiesToFilter.include?(entity.name) if entity.respond_to? :name
-  }.reject { |entity|
-    $entitiesToFilter.include?(entity.extendedEntityName) if entity.respond_to? :extendedEntityName
-  }
-  focusedEntities = focusedEntities.uniq
-  return focusedEntities
+  entities = entities.uniq
+  return entities
 end
 
 def removeCommentsAndStringsInCodeString codeString
