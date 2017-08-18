@@ -10,6 +10,7 @@ class Entity
 
   attr_accessor :contentsCodeString
 
+  attr_accessor :generics
   attr_accessor :protocols
 
   attr_accessor :methods
@@ -29,6 +30,7 @@ class Entity
     @contentsCodeString = contentsCodeString
 
     @protocols = []
+    @generics = []
     @methods = []
     @properties = []
     @cases = []
@@ -53,6 +55,10 @@ class Entity
       hash['protocols'] = @protocols.map { |protocol|
         protocol.id
       }
+    end
+
+    if !@generics.empty?
+      hash['generics'] = @generics
     end
 
     if !@cases.empty?
