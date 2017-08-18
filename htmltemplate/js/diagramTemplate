@@ -40,7 +40,18 @@ var network = undefined;
 
 function bindValues() {
     templates.setup();
+    updateDiagram();
+}
 
+function filteredEntities() {
+    var entityFilterInput = document.getElementById('entityFilter').value;
+    var entityFilters = entityFilterInput.split(/[, ]/).filter((entity) => entity!="");
+    return entities.filter((entity) => entityFilters.indexOf(entity.name) == -1);
+}
+
+function updateDiagram() {
+    $(".loading-overlay").fadeIn(1);
+    var entities = filteredEntities();
     for (var i = 0; i < entities.length; i++) {
         var entity = entities[i];
         var entityToBind = {
@@ -88,6 +99,7 @@ function getElementSizes() {
 }
 
 function renderEntity(index) {
+  var entities = filteredEntities();
   if (index >= entities.length) {
     // create the diagram
     $("#entities").html("");
@@ -119,6 +131,7 @@ function createDiagram() {
 
   var edgesToCentral = [];
   var maxEdgeLength = 0;
+  var entities = filteredEntities();
   for (var i = 0; i < entities.length; i++) {
     var entity = entities[i];
     var data = entitySizes[i];

@@ -15,6 +15,11 @@
     </div>
     <div id="classDiagram">
     </div>
+    <div class="menu">
+        <label for="entityFilter">Entities to filter: </label>
+        <input type="text" id="entityFilter" value="String" />
+        <input type="button" id="update" value="Update"/>
+    </div>
     <div class="loading-overlay">
         <div class='uil-ripple-css'>
             <div></div>
@@ -71,6 +76,9 @@
     </script>
     <script id="data" type="x-tmpl-mustache">
         <img class="entity-image" src="{{{data}}}" xmlns="http://www.w3.org/1999/xhtml"/>
+    </script>
+    <script type="text/javascript">
+        document.getElementById('update').onclick = function () { updateDiagram(); };
     </script>
 </body>
 </html>
