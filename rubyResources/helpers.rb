@@ -115,6 +115,7 @@ def allEntities codeString
     newEntity.containedEntities += subEntities
 
     newEntity.tokens += allTokens contentsCodeString
+    newEntity.generics += parseGenerics matchData['genericPart']
 
     entities << newEntity
   }
@@ -350,6 +351,11 @@ def parseUsageEntities entities
       }
     }
 
+    entity.generics.each { |generic|
+      foundEntity = entities.select { |e| e.respond_to? :name }.select { |e| e.name==generic }.first
+      entity.usageEntities << foundEntity.id if foundEntity
+    }
+
     entity.tokens.each { |token|
       foundEntity = entities.select { |e| e.id != entity.id }.select { |e| e.respond_to? :name }.select { |e| e.name==token }.first
       entity.usageEntities << foundEntity.id if foundEntity
@@ -361,6 +367,15 @@ def parseUsageEntities entities
     entity.usageEntities = entity.usageEntities - entity.containedEntities.map{|e| e.id} if entity.respond_to? :containedEntities
     entity.usageEntities = entity.usageEntities - [entity.superClass.id] if entity.respond_to? :superClass and entity.superClass.nil? == false
   }
+end
+
+def parseGenerics codeString
+  generics = []
+  genericsRegex = /(?:,\s*)?\w+:\s*(\w+)/
+  codeString.scan(genericsRegex) { |genericClassName|
+    generics << genericClassName[0]
+  }
+  return generics
 end
 
 def parseInheritedEntities entities
