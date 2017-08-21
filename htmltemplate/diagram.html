@@ -16,8 +16,16 @@
     <div id="classDiagram">
     </div>
     <div class="menu">
+        <label for="entityFocus">Entities to focus: </label>
+        <input type="text" id="entityFocus" value="" />
         <label for="entityFilter">Entities to filter: </label>
         <input type="text" id="entityFilter" value="String" />
+        <label for="showEnum">Show Enum? </label>
+        <input type="checkbox" id="showEnum" value="showEnum" checked>
+        <label for="showStruct">Show Struct? </label>
+        <input type="checkbox" id="showStruct" value="showStruct" checked>
+        <label for="showProtocol">Show Protocol? </label>
+        <input type="checkbox" id="showProtocol" value="showProtocol" checked>
         <input type="button" id="update" value="Update"/>
     </div>
     <div class="loading-overlay">

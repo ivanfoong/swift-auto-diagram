@@ -44,9 +44,41 @@ function bindValues() {
 }
 
 function filteredEntities() {
+    var entityNameToIdLookupTable = entities.reduce((map, entity) => { map[entity.name] = entity.id; return map; }, {});
+    var shouldShowEnum = document.getElementById('showEnum').checked;
+    var shouldShowStruct = document.getElementById('showStruct').checked;
+    var shouldShowProtocol = document.getElementById('showProtocol').checked;
+    var entityFocusInput = document.getElementById('entityFocus').value;
+    var entityFocusNames = entityFocusInput.split(/[, ]/).filter((entity) => entity!="");
+    var entityFocusIds = entityFocusNames.map((name) => entityNameToIdLookupTable[name]);
     var entityFilterInput = document.getElementById('entityFilter').value;
     var entityFilters = entityFilterInput.split(/[, ]/).filter((entity) => entity!="");
-    return entities.filter((entity) => entityFilters.indexOf(entity.name) == -1);
+    var theFilteredEntities = entities;
+
+    if (!shouldShowEnum) {
+      theFilteredEntities = theFilteredEntities.filter((entity) => entity.typeString!="enum");
+    }
+    if (!shouldShowStruct) {
+      theFilteredEntities = theFilteredEntities.filter((entity) => entity.typeString!="struct");
+    }
+    if (!shouldShowProtocol) {
+      theFilteredEntities = theFilteredEntities.filter((entity) => entity.typeString!="protocol");
+    }
+
+    theFilteredEntities = theFilteredEntities.filter((entity) => entityFilters.indexOf(entity.name) == -1);
+    if (entityFocusNames.length == 0) {
+        return theFilteredEntities;
+    }
+    var focusedEntities = theFilteredEntities.filter((entity) => 'id' in entity).filter((entity) => entityFocusIds.indexOf(entity.id) >= 0);
+    focusedEntities.filter((entity) => 'usages' in entity).forEach(function(entity) {
+      var usages = entity.usages;
+      focusedEntities = focusedEntities.concat(theFilteredEntities.filter((entity) => 'id' in entity).filter((entity) => usages.indexOf(entity.id) >= 0));
+    });
+    focusedEntities = focusedEntities.concat(theFilteredEntities.filter((entity) => 'containedEntities' in entity).filter((entity) => entity.containedEntities.some((id) => entityFocusIds.indexOf(id) >= 0)));
+    focusedEntities = focusedEntities.concat(theFilteredEntities.filter((entity) => 'superClass' in entity).filter((entity) => entityFocusIds.indexOf(entity.superClass) >= 0));
+    focusedEntities = focusedEntities.concat(theFilteredEntities.filter((entity) => 'protocols' in entity).filter((entity) => entity.protocols.some((id) => entityFocusIds.indexOf(id) >= 0)));
+    focusedEntities = focusedEntities.concat(theFilteredEntities.filter((entity) => 'usages' in entity).filter((entity) => entity.usages.some((id) => entityFocusIds.indexOf(id) >= 0)));
+    return Array.from(new Set(focusedEntities));
 }
 
 function updateDiagram() {
